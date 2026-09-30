@@ -1,8 +1,12 @@
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: 'http://localhost:8000/api'
-});
+const baseURL = import.meta.env.VITE_API_URL || (
+  typeof window !== 'undefined' && (window.location.port === '5173' || window.location.port === '5174')
+    ? 'http://localhost:8000/api'
+    : '/api'
+);
+
+const api = axios.create({ baseURL });
 
 export const getTransactions = () => api.get('/transactions').then(res => res.data);
 export const getTransaction = (id) => api.get(`/transactions/${id}`).then(res => res.data);

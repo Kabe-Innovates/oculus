@@ -10,7 +10,17 @@ export const useTransactionStream = () => {
     let reconnectCount = 0;
     
     const connect = () => {
-      wsRef.current = new WebSocket('ws://localhost:8000/ws/transactions');
+      const getWsUrl = () => {
+        if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
+        if (typeof window !== 'undefined' && (window.location.port === '5173' || window.location.port === '5174')) {
+          return 'ws://localhost:8000/ws/transactions';
+        }
+        const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = typeof window !== 'undefined' ? window.location.host : 'localhost';
+        return `${protocol}//${host}/ws/transactions`;
+      };
+
+      wsRef.current = new WebSocket(getWsUrl());
       
       wsRef.current.onopen = () => {
         setIsConnected(true);

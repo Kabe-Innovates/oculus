@@ -8,8 +8,8 @@ class ConfigSettings(BaseSettings):
     VELOCITY_THRESHOLD: int = 5
     AMOUNT_DEVIATION_THRESHOLD: float = 2.0
     GEO_MAX_SPEED_KMH: float = 900.0
-    RISK_BLOCK_THRESHOLD: float = 75.0
-    RISK_REVIEW_THRESHOLD: float = 40.0
+    RISK_BLOCK_THRESHOLD: float = 60.0
+    RISK_REVIEW_THRESHOLD: float = 30.0
     SIMULATOR_RATE: float = 2.0
     
     class Config:

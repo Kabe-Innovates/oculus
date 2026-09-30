@@ -2,6 +2,10 @@
 
 ### Real-Time Transaction Risk Evaluation Engine and Review Console
 
+**Live Production Deployment**: [http://3.109.200.180/](http://3.109.200.180/)  
+**Interactive API Documentation**: [http://3.109.200.180/docs](http://3.109.200.180/docs)  
+**AWS Host**: `ec2-3-109-200-180.ap-south-1.compute.amazonaws.com` (AWS ap-south-1)
+
 ---
 
 ## Executive Summary

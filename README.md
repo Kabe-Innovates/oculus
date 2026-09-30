@@ -1,29 +1,43 @@
-# Oculus Fraud Detection Platform
+<div align="center">
 
-### Real-Time Transaction Risk Evaluation Engine and Review Console
+# Oculus
 
-**Live Production Deployment**: [http://3.109.200.180/](http://3.109.200.180/)  
-**Interactive API Documentation**: [http://3.109.200.180/docs](http://3.109.200.180/docs)  
-**AWS Host**: `ec2-3-109-200-180.ap-south-1.compute.amazonaws.com` (AWS ap-south-1)
+### Real-Time Transaction Risk Engine & Review Console
+
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
+[![Tailwind](https://img.shields.io/badge/Tailwind-v4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![AWS](https://img.shields.io/badge/AWS-EC2%20%26%20SNS-232F3E?style=flat-square&logo=amazon-aws&logoColor=white)](https://aws.amazon.com)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
+[![Deployment](https://img.shields.io/badge/Live_Demo-Online-10B981?style=flat-square)](http://3.109.200.180/)
+
+**[Live Review Console](http://3.109.200.180/)** • **[Interactive API Documentation](http://3.109.200.180/docs)** • **[GitHub Repository](https://github.com/Kabe-Innovates/oculus)**
+
+</div>
 
 ---
 
-## Executive Summary
+## Overview
 
-The Oculus Fraud Detection Platform provides real-time transaction scoring, automated risk mitigation, and human-in-the-loop review capabilities for mission-critical financial infrastructure. Modeled after defense-in-depth principles employed by global payment processors, the system evaluates incoming transaction streams with sub-50ms latency using an extensible, multi-factor rule engine.
+Oculus is a real-time fraud risk engine and analyst review console built for payment workflows. Modeled after defense-in-depth architectures used by Stripe Radar and PayPal, it evaluates transactions in under 50ms using an open/closed rule engine, streaming verdicts to an operational review dashboard and dispatching cloud alerts via Amazon SNS.
 
-Transactions undergo concurrent evaluation across temporal velocity, statistical outlier detection, and geodesic kinematic consistency. High-risk anomalies trigger automated mitigation workflows, including cloud-based security notifications via Amazon Simple Notification Service (Amazon SNS), while routing borderline events to a high-density analyst console for human adjudication.
+### Highlights
+- **Open/Closed Rule Engine**: Add new rules without modifying core engine logic.
+- **Continuous 0–100 Scoring**: Weighted composite risk scores instead of binary flags.
+- **Three-Tier Policy**: Automatic classification into `ALLOW` (<40), `REVIEW` (40–74), and `BLOCK` (≥75).
+- **Amazon SNS Integration**: Real-time email notifications for critical blocked transactions.
+- **Real-Time Console**: Minimal dark-mode dashboard built with React 18, Tailwind CSS v4, and WebSockets.
+- **Live AWS Cloud Host**: Containerized and running on AWS EC2 behind an Nginx reverse proxy.
 
 ---
 
-## Key System Capabilities
+## Live Endpoints
 
-- **Open/Closed Plugin Architecture**: Detection strategies implement an abstract base interface and are registered at runtime via dynamic package reflection. New rules can be deployed without altering the engine orchestrator or interrupting active ingestion streams.
-- **Continuous Normalized Risk Scoring**: Transactions receive a composite risk score ranging from 0 to 100 based on normalized weighted scoring algorithms, avoiding brittle binary classification.
-- **Three-Tier Policy Enforcement**: Deterministic policy assignment categorizes events into `ALLOW` (0–39), `REVIEW` (40–74), and `BLOCK` (75–100).
-- **Asynchronous Ingestion and WebSocket Broadcast**: Built on modern asynchronous Python (FastAPI/asyncio) and WebSockets to deliver immediate state replication across all connected operational consoles.
-- **Cloud Notification Integration**: High-risk events trigger automated dispatch through Amazon SNS, notifying compliance and fraud investigation personnel via email or automated webhooks.
-- **Optimized Operational Console**: A high-performance, dark-mode analyst interface built with React 18 and Tailwind CSS, featuring SVG telemetry meters, granular rule audit breakdowns, and complete audit logging.
+- **Analyst Console**: [http://3.109.200.180/](http://3.109.200.180/)
+- **API Documentation**: [http://3.109.200.180/docs](http://3.109.200.180/docs)
+- **WebSocket Stream**: `ws://3.109.200.180/ws/transactions`
+- **AWS Region**: `ap-south-1` (Mumbai)
 
 ---
 
@@ -31,140 +45,86 @@ Transactions undergo concurrent evaluation across temporal velocity, statistical
 
 ```mermaid
 flowchart TB
-    subgraph Ingestion["1. Ingestion Layer"]
-        SIM["Synthetic Stream Generator<br/>(Normal, Bursts, Outliers, Kinematic Jumps)"]
-        GATEWAY["Payment Gateway / Ingestion API"]
+    subgraph Ingestion["1. Ingestion"]
+        SIM["Traffic Simulator<br/>(Normal / Bursts / Anomalies)"]
+        CLIENT["Payment Client / API"]
     end
 
-    subgraph CoreEngine["2. Risk Evaluation Engine (FastAPI / Asynchronous Pipeline)"]
-        INGEST["POST /api/transactions"]
-        REGISTRY["Rule Registry<br/>(Dynamic Reflection & Discovery)"]
+    subgraph CoreEngine["2. Risk Evaluation Engine (FastAPI)"]
+        ROUTER["POST /api/transactions"]
+        REGISTRY["Rule Registry<br/>(Dynamic Discovery)"]
         
-        subgraph Rules["Concurrent Evaluation Pipeline"]
-            R1["Rule: Velocity Spike<br/>(Sliding Temporal Window)"]
-            R2["Rule: Amount Anomaly<br/>(Gaussian Statistical Outlier)"]
-            R3["Rule: Geodesic Velocity<br/>(Haversine Kinematic Limit)"]
-            RN["Rule: Pluggable Strategy N<br/>(Abstract Base Class)"]
+        subgraph Rules["Concurrent Rules"]
+            R1["Velocity Check<br/>(Temporal Window)"]
+            R2["Amount Anomaly<br/>(Z-Score Outlier)"]
+            R3["Geo Impossibility<br/>(Haversine Kinematic Speed)"]
+            RN["Custom Strategy N<br/>(Pluggable ABC)"]
         end
         
-        AGGREGATOR["Composite Risk Aggregator<br/>(0–100 Normalized Score & Verdict)"]
-        STORAGE[(Asynchronous Database<br/>SQLite / PostgreSQL)]
+        AGGREGATOR["Composite Aggregator<br/>(0–100 Weighted Score)"]
+        DB[(Persistent DB<br/>SQLite / PostgreSQL)]
     end
 
-    subgraph Notification["3. Alerting & Messaging"]
+    subgraph Alerts["3. Cloud Alerting"]
         SNS["Amazon SNS Topic<br/>(ap-south-1)"]
-        OPS["Security Operations / Analyst Subscriptions"]
+        MAIL["Compliance & Reviewer Email"]
     end
 
-    subgraph Console["4. Analyst Review Console (React 18 + Tailwind)"]
-        WS["WebSocket Stream<br/>/ws/transactions"]
-        DASH["Operational Dashboard & KPIs"]
-        AUDIT["Transaction Forensic Inspection & Remediation"]
+    subgraph Console["4. Review Console (React 18)"]
+        WS["WebSocket Stream"]
+        DASH["Live Metrics & Table"]
+        AUDIT["Forensic Review & Actions"]
     end
 
-    SIM & GATEWAY --> INGEST
-    INGEST --> REGISTRY
+    SIM & CLIENT --> ROUTER
+    ROUTER --> REGISTRY
     REGISTRY --> R1 & R2 & R3 & RN
     R1 & R2 & R3 & RN --> AGGREGATOR
-    AGGREGATOR --> STORAGE
+    AGGREGATOR --> DB
     AGGREGATOR -->|"Verdict == BLOCK"| SNS
-    SNS --> OPS
-    INGEST -->|"Broadcast Event"| WS
+    SNS --> MAIL
+    ROUTER -->|"Broadcast"| WS
     WS --> Console
-    Console <-->|"Adjudication (PATCH /review)"| INGEST
+    Console <-->|"Audit (PATCH /review)"| ROUTER
 ```
 
 ---
 
-## Architectural Principles
+## Detection Rules
 
-### Open/Closed Principle
+| Rule | Weight | Method | Logic |
+|:---|:---:|:---|:---|
+| **Velocity Spike** (`velocity_check`) | 35% | Temporal Sliding Window | Flags accounts exceeding 5 transactions within a 300-second window to detect automated card-testing. |
+| **Amount Anomaly** (`amount_anomaly`) | 35% | Gaussian Z-Score | Calculates sample mean $\mu$ and standard deviation $\sigma$ from sender history; flags transactions where $Z > 2.0$. |
+| **Geo Impossibility** (`geo_impossible`) | 30% | Haversine Kinematic Distance | Computes great-circle distance between consecutive locations; flags Relocations requiring speeds $> 900\text{ km/h}$. |
 
-The evaluation engine adheres strictly to the Open/Closed Principle (software entities should be open for extension, but closed for modification). All detection rules inherit from the `FraudRule` abstract base class:
+### Composite Risk Formulation
 
-```python
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-
-@dataclass
-class RuleResult:
-    rule_name: str
-    score: float
-    reason: str
-    triggered: bool
-
-class FraudRule(ABC):
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """Unique identifier for the detection rule."""
-        pass
-
-    @property
-    @abstractmethod
-    def weight(self) -> float:
-        """Relative contribution weight (0.0 to 1.0) in composite scoring."""
-        pass
-
-    @abstractmethod
-    async def evaluate(self, transaction: dict, history: list[dict]) -> RuleResult:
-        """Asynchronously evaluate the transaction against historical context."""
-        pass
-```
-
-During application initialization, the `RuleRegistry` inspects the `backend/rules/` directory via `importlib` and `pkgutil`, automatically instantiating all concrete implementations without requiring manual wiring.
-
-### Multi-Factor Composite Scoring Model
-
-Rather than relying on isolated threshold gates, each detection rule yields a normalized score $S_i \in [0, 100]$ alongside explanatory metadata. The engine aggregates these scores into a single composite index $R$:
+Each rule produces an individual score $S_i \in [0, 100]$. The engine aggregates these into a normalized composite score $R$:
 
 $$R = \frac{\sum_{i=1}^{N} (S_i \times W_i)}{\sum_{i=1}^{N} W_i}$$
 
-Where $W_i$ represents the assigned weight of rule $i$.
-
-| Composite Score ($R$) | Verdict | Automated Action |
-|:---|:---:|:---|
-| $0 \le R < 40$ | `ALLOW` | Auto-cleared. Transaction proceeds without analyst intervention. |
-| $40 \le R < 75$ | `REVIEW` | Flagged. Routed to analyst console for secondary review. |
-| $75 \le R \le 100$ | `BLOCK` | Halted. Transaction blocked; immediate Amazon SNS alert dispatched. |
+| Score Range | Verdict | Action |
+|:---:|:---:|:---|
+| $0 \le R < 40$ | `ALLOW` | Transaction approved automatically. |
+| $40 \le R < 75$ | `REVIEW` | Routed to analyst console for inspection. |
+| $75 \le R \le 100$ | `BLOCK` | Transaction halted; Amazon SNS alert dispatched. |
 
 ---
 
-## Detection Rule Specifications
+## Extensibility: Adding a Rule
 
-### 1. Velocity Spike (`velocity_check`)
-- **Objective**: Prevent card-testing attacks and rapid credential stuffing.
-- **Mechanism**: Inspects the sender's transaction count within a sliding temporal window of 300 seconds.
-- **Scoring**: Scaled linearly relative to the configured threshold $T$ ($T=5$ transactions). If count $C > T$, score escalates up to 100; otherwise, partial risk is assigned proportionally.
-
-### 2. Amount Anomaly (`amount_anomaly`)
-- **Objective**: Detect uncharacteristic spending deviations indicative of account takeover or unauthorized access.
-- **Mechanism**: Computes the historical sample mean $\mu$ and standard deviation $\sigma$ across the sender's prior transactions.
-- **Scoring**: Computes the standard score $Z = \frac{X - \mu}{\sigma}$. Transactions with $Z > 2.0$ trigger an anomaly flag, scaling the risk score relative to the magnitude of the deviation.
-
-### 3. Geodesic Velocity (`geo_impossibility`)
-- **Objective**: Detect impossible geographical relocation between consecutive transactions (teleportation fraud).
-- **Mechanism**: Extracts latitude and longitude from consecutive transactions and applies the Haversine formula to compute great-circle distance $d$:
-
-$$d = 2r \arcsin\left(\sqrt{\sin^2\left(\frac{\Delta \phi}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\Delta \lambda}{2}\right)}\right)$$
-
-- **Scoring**: Calculates minimum required travel speed $v = \frac{d}{\Delta t}$. If $v > 900\text{ km/h}$ (standard commercial aviation velocity limit), an impossible travel condition is flagged with a score of 100.
-
----
-
-## Extension Guide: Adding Custom Rules
-
-To introduce a new rule, add a single Python file to `backend/rules/`. No modifications to engine orchestrators or API routers are necessary.
+Create a new file in `backend/rules/` inheriting `FraudRule`. The system registers it on startup without engine modifications:
 
 ```python
-# backend/rules/device_reputation.py
+# backend/rules/device_switch.py
 from engine.base import FraudRule, RuleResult
 from typing import Dict, List
 
-class DeviceReputationRule(FraudRule):
+class DeviceSwitchRule(FraudRule):
     @property
     def name(self) -> str:
-        return "device_reputation"
+        return "device_switch"
 
     @property
     def weight(self) -> float:
@@ -172,186 +132,81 @@ class DeviceReputationRule(FraudRule):
 
     async def evaluate(self, transaction: Dict, history: List[Dict]) -> RuleResult:
         device_id = transaction.get("device_fingerprint")
-        known_devices = {h.get("device_fingerprint") for h in history if h.get("device_fingerprint")}
+        known = {h.get("device_fingerprint") for h in history if h.get("device_fingerprint")}
 
-        if known_devices and device_id not in known_devices:
+        if known and device_id not in known:
             return RuleResult(
                 rule_name=self.name,
-                score=60.0,
-                reason=f"Unrecognized device fingerprint. Known profiles: {len(known_devices)}",
+                score=65.0,
+                reason=f"New device fingerprint detected. Known devices: {len(known)}",
                 triggered=True
             )
-
         return RuleResult(self.name, 0.0, "Recognized device profile", False)
 ```
 
-The system will discover and register the rule automatically upon the next service cycle.
-
 ---
 
-## Cloud Integration: Amazon SNS
+## Amazon SNS Notifications
 
-The notification subsystem provides critical alerting when high-risk thresholds are crossed:
+When an incident triggers a `BLOCK` verdict, an alert payload is dispatched to Amazon SNS:
 
-1. **Service Provisioning**: Automated topic generation and subscriber management using `scripts/setup_sns.py`.
-2. **Alert Payloads**: Dispatches formatted incident reports containing transaction identifiers, amounts, sender information, composite risk ratings, and detailed rule justifications.
-3. **Graceful Fallback**: If AWS credentials or topic ARNs are omitted in local environments, the platform routes alerts through `ConsoleNotifier` without throwing unhandled exceptions.
-
-### Alert Message Format
 ```text
-FRAUD ALERT: Blocked transaction 6e67ee0e-4b7c-4ea9-ad2f-92517fa9f075
-Amount: 50,000.00 USD
-Sender: user_1
+FRAUD ALERT: Blocked transaction ff936e48-e391-4b5c-bc0d-c31830a3e184
+Amount: $50,000.00 USD
+Sender: user_14
 Score: 82.5 (BLOCK)
 Triggered Rules:
- - amount_anomaly: Amount significantly higher than historical average (Score: 80.0)
- - geo_impossibility: Impossible speed: 3,995,740 km/h (Score: 100.0)
+ - amount_anomaly: Amount is 6.4x standard deviation above mean (score: 85.0)
+ - geo_impossibility: Impossible speed: 3,995,740 km/h (score: 100.0)
 ```
 
----
-
-## Operational Console (Frontend)
-
-The user interface is engineered for real-time monitoring and forensic analysis:
-
-- **Minimalist Aesthetic**: High-contrast, dark-mode design optimized for operations centers.
-- **Lightweight Footprint**: Bundle size of 247 KB, built with standard Vite and React 18 pipelines.
-- **WebSocket State Synchronization**: Automatic subscription to the backend transaction stream with exponential backoff reconnection handling.
-- **Telemetry Visualizations**: SVG-based risk meters and dynamic progress indicators reflecting risk distributions.
-- **Audit Workflow**: Analysts can clear transactions or confirm fraud, appending reviewer notes to the audit ledger.
+If AWS credentials are not configured, the system gracefully falls back to console logging.
 
 ---
 
-## Getting Started
+## Quickstart
 
-### Prerequisites
-- Python 3.10 or higher
-- Node.js 18 or higher (with npm)
-- AWS CLI configured (optional; required only for live Amazon SNS dispatches)
-
-### 1. Installation
-
-Clone the repository:
+### Local Setup with Docker Compose
 ```bash
-git clone git@github.com:Kabe-Innovates/oculus.git
+git clone https://github.com/Kabe-Innovates/oculus.git
 cd oculus
+docker compose up -d --build
 ```
+The console will be accessible at `http://localhost/` and API docs at `http://localhost/docs`.
 
-### 2. Backend Initialization
-
+### Manual Setup
 ```bash
+# 1. Backend
 cd backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
+uvicorn main:app --reload --port 8000
 
-# Start FastAPI service
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-The interactive OpenAPI documentation is accessible at `http://localhost:8000/docs`.
-
-### 3. Frontend Initialization
-
-```bash
-# In a separate terminal session
+# 2. Frontend (in another terminal)
 cd frontend
 npm install
 npm run dev
 ```
 
-The review console will be available at `http://localhost:5173`.
-
-### 4. Amazon SNS Configuration (Optional)
-
-To configure live email notifications for blocked transactions:
-
-```bash
-cd backend
-./venv/bin/python ../scripts/setup_sns.py --email analyst@example.com --region ap-south-1
-```
-
-Confirm the subscription link received in the target email inbox, then restart the backend service.
-
 ---
 
 ## API Reference
 
-| HTTP Method | Route | Description |
+| Method | Endpoint | Description |
 |:---|:---|:---|
-| `POST` | `/api/transactions` | Ingests a new transaction, executes all rules, and stores results. |
-| `GET` | `/api/transactions` | Retrieves transactions with filtering options (`verdict`, `status`, `limit`). |
-| `GET` | `/api/transactions/{id}` | Retrieves full transaction detail and rule breakdown. |
-| `PATCH` | `/api/transactions/{id}/review` | Updates review status (`CLEARED`, `CONFIRMED_FRAUD`) with notes. |
-| `GET` | `/api/stats` | Aggregated metrics including risk distributions and counts. |
-| `POST` | `/api/simulate/start` | Initiates the background synthetic transaction generator. |
-| `POST` | `/api/simulate/stop` | Halts the background synthetic transaction generator. |
-| `GET` | `/api/simulate/status` | Queries the operational state of the simulator. |
-| `WS` | `/ws/transactions` | WebSocket endpoint broadcasting incoming transactions in real time. |
-
----
-
-## Repository Structure
-
-```
-oculus/
-├── README.md                           # Technical system documentation
-├── LICENSE                             # MIT License definition
-├── .gitignore                          # Source control exclusion specifications
-├── scripts/
-│   └── setup_sns.py                    # Amazon SNS provisioning script
-├── backend/                            # Core backend service
-│   ├── main.py                         # Application initialization & WebSocket router
-│   ├── config.py                       # Configuration schema and environment loader
-│   ├── database.py                     # SQLAlchemy async database session management
-│   ├── models.py                       # Transaction ORM data model
-│   ├── schemas.py                      # Request and response validation models
-│   ├── requirements.txt                # Python package dependencies
-│   ├── engine/
-│   │   ├── base.py                     # Abstract base class definitions
-│   │   ├── registry.py                 # Dynamic reflection rule registry
-│   │   └── core.py                     # Orchestrator & score aggregation logic
-│   ├── rules/                          # Concrete fraud detection rules
-│   │   ├── velocity.py                 # Sliding temporal window rule
-│   │   ├── amount_anomaly.py           # Statistical deviation rule
-│   │   └── geo_impossible.py           # Kinematic velocity rule
-│   ├── services/
-│   │   ├── notifier.py                 # Amazon SNS and console notification handlers
-│   │   └── simulator.py                # Synthetic stream generator
-│   └── routers/
-│       ├── transactions.py             # Transaction CRUD and review endpoints
-│       ├── stats.py                    # Metric analytics endpoints
-│       └── simulator.py                # Ingestion simulator control endpoints
-└── frontend/                           # Operations console application
-    ├── index.html                      # Single-page application entry point
-    ├── vite.config.js                  # Vite bundler configuration
-    ├── package.json                    # Frontend package dependencies
-    └── src/
-        ├── main.jsx                    # React application mount
-        ├── App.jsx                     # Router and layout structure
-        ├── index.css                   # Tailwind v4 configuration and tokens
-        ├── api/
-        │   └── client.js               # HTTP client interface
-        ├── hooks/
-        │   └── useTransactionStream.js # Reconnecting WebSocket hook
-        ├── pages/
-        │   ├── Dashboard.jsx           # Main operations monitoring page
-        │   └── TransactionDetail.jsx   # Detailed forensic investigation view
-        └── components/
-            ├── FilterBar.jsx           # Filter controls
-            ├── LiveIndicator.jsx       # Real-time connectivity indicator
-            ├── ReviewActions.jsx       # Analyst remediation controls
-            ├── RiskGauge.jsx           # SVG risk meter visualization
-            ├── RuleBreakdown.jsx       # Forensic rule evaluation card
-            ├── StatsCards.jsx          # Telemetry KPI cards
-            ├── StatusBadge.jsx         # Status pill badges
-            ├── TransactionTable.jsx    # Transaction data table
-            └── VerdictBadge.jsx        # Verdict indicator badge
-```
+| `POST` | `/api/transactions` | Ingest and evaluate a new transaction. |
+| `GET` | `/api/transactions` | List evaluated transactions (`?verdict=BLOCK&status=PENDING`). |
+| `GET` | `/api/transactions/{id}` | Retrieve transaction detail and per-rule breakdown. |
+| `PATCH` | `/api/transactions/{id}/review` | Adjudicate transaction (`CLEARED`, `CONFIRMED_FRAUD`). |
+| `GET` | `/api/stats` | Retrieve aggregate risk distribution and counters. |
+| `POST` | `/api/simulate/start` | Start synthetic transaction generator. |
+| `POST` | `/api/simulate/stop` | Stop synthetic transaction generator. |
+| `WS` | `/ws/transactions` | Real-time WebSocket transaction stream. |
 
 ---
 
 ## License
 
-This software is released under the MIT License. See [LICENSE](LICENSE) for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

@@ -7,89 +7,70 @@ Real-time payment fraud decision and review platform. Single region
 
 ```mermaid
 flowchart TB
-    Analyst["Analyst Browser"]
+    U["Internet / Analyst Browser"]
 
-    subgraph AWS["AWS Account - ap-south-1"]
-        CF["CloudFront Distribution"]
-        S3["S3 Bucket (private, OAC)<br/>React SPA static assets"]
+    U -->|HTTPS| CF["CloudFront Distribution"]
+    CF -->|static assets| S3["S3 Bucket<br/>(private, OAC)<br/>React SPA"]
+    CF -->|/api/*, /ws/*<br/>HTTPS + WebSocket| WAF["AWS WAFv2 WebACL"]
 
-        subgraph VPC["VPC 10.20.0.0/16"]
-            subgraph PubAZ1["Public Subnet AZ-1 (10.20.0.0/24)<br/>SG: alb-sg"]
-                ALB1["ALB node"]
+    subgraph VPC["VPC 10.20.0.0/16"]
+        WAF --> ALB["Application Load Balancer<br/>sg: alb-sg"]
+
+        subgraph AZ1["Availability Zone 1"]
+            subgraph PubSub1["Public Subnet · sg: alb-sg"]
+                ALBn1["ALB node"]
             end
-            subgraph PubAZ2["Public Subnet AZ-2 (10.20.1.0/24)<br/>SG: alb-sg"]
-                ALB2["ALB node"]
+            subgraph PrivSub1["Private Subnet"]
+                ECS1["ECS Fargate task<br/>FastAPI · sg: ecs-sg"]
             end
-
-            WAF["AWS WAFv2 WebACL<br/>(managed rules + rate limit)"]
-
-            subgraph PrivAZ1["Private Subnet AZ-1 (10.20.10.0/24)<br/>SG: ecs-sg / rds-sg / redis-sg"]
-                ECS1["ECS Fargate task<br/>FastAPI decision service"]
-                RDS1["RDS PostgreSQL<br/>(primary)"]
-                Redis1["ElastiCache Redis<br/>(primary)"]
-            end
-
-            subgraph PrivAZ2["Private Subnet AZ-2 (10.20.11.0/24)<br/>SG: ecs-sg / rds-sg / redis-sg"]
-                ECS2["ECS Fargate task<br/>FastAPI decision service"]
-                RDS2["RDS PostgreSQL<br/>(standby, Multi-AZ)"]
-                Redis2["ElastiCache Redis<br/>(replica)"]
-            end
-
-            NAT1["NAT Gateway AZ-1"]
-            NAT2["NAT Gateway AZ-2"]
         end
 
-        SQS["SQS outbox queue + DLQ"]
-        Lambda["Lambda outbox worker<br/>(SG: lambda-sg, egress-only)"]
-        SNS["SNS Topic<br/>fraud-alerts"]
-        SES["SES<br/>case-summary email"]
-        Cognito["Cognito User Pool<br/>groups: analyst, admin"]
-        Secrets["Secrets Manager<br/>RDS creds + app config"]
-        CW["CloudWatch<br/>dashboards + alarms<br/>p50/p95, rule hit rate"]
+        subgraph AZ2["Availability Zone 2"]
+            subgraph PubSub2["Public Subnet · sg: alb-sg"]
+                ALBn2["ALB node"]
+            end
+            subgraph PrivSub2["Private Subnet"]
+                ECS2["ECS Fargate task<br/>FastAPI · sg: ecs-sg"]
+            end
+        end
+
+        ALB --> ALBn1 & ALBn2
+        ALBn1 --> ECS1
+        ALBn2 --> ECS2
+
+        ECS1 & ECS2 --> RDS["RDS PostgreSQL<br/>(Multi-AZ) · sg: rds-sg"]
+        ECS1 & ECS2 --> Redis["ElastiCache Redis<br/>sg: redis-sg"]
     end
 
-    Analyst -->|HTTPS| CF
-    CF -->|/ default path| S3
-    CF -->|/api/*, /ws/* HTTPS + WebSocket| WAF
-    WAF --> ALB1
-    WAF --> ALB2
-    ALB1 --> ECS1
-    ALB2 --> ECS2
-    Cognito -.auth/roles.-> ALB1
+    RDS --> Outbox["outbox table"]
+    Outbox --> SQS["SQS outbox queue"]
+    SQS -.on failure.-> DLQ["SQS DLQ"]
+    SQS --> Lambda["Lambda outbox worker"]
+    Lambda --> SNS["SNS Topic<br/>fraud-alerts"]
+    Lambda --> SES["SES<br/>case-summary email"]
+    SNS -->|email/SMS| U
+    SES -->|email| U
 
-    ECS1 --> RDS1
-    ECS2 --> RDS2
-    ECS1 --> Redis1
-    ECS2 --> Redis2
-    ECS1 -. NAT egress .-> NAT1
-    ECS2 -. NAT egress .-> NAT2
+    Cognito["Cognito User Pool<br/>analyst / admin groups"] -.auth (JWT).-> ALB
+    Secrets["Secrets Manager<br/>RDS creds + app config"] -.GetSecretValue.-> ECS1
+    Secrets -.GetSecretValue.-> ECS2
+    ECS1 & ECS2 -.sns:Publish only.-> SNS
 
-    RDS1 -->|outbox rows| SQS
-    SQS --> Lambda
-    Lambda --> SNS
-    Lambda --> SES
-    SNS -->|email/SMS| Analyst
-    SES -->|email| Analyst
-
-    ECS1 -.sns:Publish only.-> SNS
-    ECS1 -.reads.-> Secrets
-    ECS2 -.reads.-> Secrets
-
-    ECS1 -.metrics/logs.-> CW
-    ALB1 -.metrics.-> CW
+    CW["CloudWatch<br/>p50/p95 latency, per-rule<br/>hit rate, alarms"] -.metrics/logs.-> ALB
+    CW -.metrics/logs.-> ECS1
+    CW -.metrics/logs.-> ECS2
 ```
 
 ## Security boundaries
 
 - **VPC**: single VPC `10.20.0.0/16`, 2 AZs (`ap-south-1a`, `ap-south-1b`).
-- **Public subnets** (`10.20.0.0/24`, `10.20.1.0/24`): host the ALB only.
-  `map_public_ip_on_launch = true`. Route to Internet Gateway.
-- **Private subnets** (`10.20.10.0/24`, `10.20.11.0/24`): host ECS Fargate
-  tasks, RDS PostgreSQL, and ElastiCache Redis. No public IPs. Route to
-  NAT Gateways (one per AZ) for outbound-only internet access (image
-  pulls, AWS API calls).
-- **Security groups**:
-  - `alb-sg`: ingress 80/443 from `0.0.0.0/0` (the only internet-facing SG).
+- **Public subnets** (one per AZ): host the ALB only. `map_public_ip_on_launch
+  = true`. Route to an Internet Gateway.
+- **Private subnets** (one per AZ): host ECS Fargate tasks, RDS PostgreSQL,
+  and ElastiCache Redis. No public IPs. Route to NAT Gateways (one per AZ)
+  for outbound-only internet access (image pulls, AWS API calls).
+- **Security groups** (trust boundaries shown in the diagram):
+  - `alb-sg`: ingress 80/443 from `0.0.0.0/0` — the only internet-facing SG.
   - `ecs-sg`: ingress on the app port from `alb-sg` only.
   - `rds-sg`: ingress 5432 from `ecs-sg` only.
   - `redis-sg`: ingress 6379 from `ecs-sg` only.
@@ -114,8 +95,9 @@ flowchart TB
    persists transactions/fraud_flags/reviews plus an outbox row to RDS
    PostgreSQL in the same transaction.
 3. A relay drains the `outbox` table into SQS. A Lambda worker consumes
-   SQS and fans out alerts via SNS (email/SMS to analysts) and SES (rich
-   case-summary email).
+   SQS (failed messages route to the DLQ after 5 receives) and fans out
+   alerts via SNS (email/SMS to analysts) and SES (rich case-summary
+   email).
 4. Cognito issues JWTs for `analyst`/`admin` roles, validated by the ALB
    or the FastAPI service.
 5. CloudWatch collects ALB p50/p95 latency, ECS CPU/memory, SQS queue

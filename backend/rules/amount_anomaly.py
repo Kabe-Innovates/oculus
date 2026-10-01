@@ -16,8 +16,8 @@ class AmountAnomalyRule(FraudRule):
         amount = transaction.get('amount', 0.0)
         
         if not history:
-            if amount > 5000:
-                score = min(100.0, (amount / 5000) * 50)
+            if amount > settings.AMOUNT_NO_HISTORY_LIMIT:
+                score = min(100.0, (amount / settings.AMOUNT_NO_HISTORY_LIMIT) * 50)
                 return RuleResult(self.name, score, "Large amount with no history", True)
             return RuleResult(self.name, 0.0, "No history, normal amount", False)
             

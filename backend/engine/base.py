@@ -8,6 +8,7 @@ class RuleResult:
     score: float
     reason: str
     triggered: bool
+    severity: str = "NORMAL"  # NORMAL | CRITICAL
 
 class FraudRule(ABC):
     @property

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
@@ -9,16 +9,29 @@ import datetime
 
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
 
+
 @router.post("", response_model=TransactionResponse)
-async def create_transaction(request: Request, tx_in: TransactionCreate, db: AsyncSession = Depends(get_db)):
+async def create_transaction(
+    request: Request,
+    tx_in: TransactionCreate,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
     engine = request.app.state.fraud_engine_class(request.app.state.registry, db)
     tx_data = tx_in.model_dump()
     db_transaction = await engine.process_transaction(tx_data)
-    
+
+    # WebSocket broadcast
     ws_manager = request.app.state.ws_manager
     await ws_manager.broadcast(db_transaction)
-    
+
+    # Non-blocking notification for BLOCK verdicts
+    if db_transaction.verdict == "BLOCK":
+        notifier = request.app.state.notifier
+        background_tasks.add_task(notifier.notify, db_transaction)
+
     return db_transaction
+
 
 @router.get("", response_model=List[TransactionResponse])
 async def list_transactions(verdict: Optional[str] = None, status: Optional[str] = None, limit: int = 50, offset: int = 0, db: AsyncSession = Depends(get_db)):
@@ -31,6 +44,7 @@ async def list_transactions(verdict: Optional[str] = None, status: Optional[str]
     result = await db.execute(stmt)
     return result.scalars().all()
 
+
 @router.get("/{id}", response_model=TransactionResponse)
 async def get_transaction(id: str, db: AsyncSession = Depends(get_db)):
     stmt = select(Transaction).where(Transaction.id == id)
@@ -39,6 +53,7 @@ async def get_transaction(id: str, db: AsyncSession = Depends(get_db)):
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return tx
+
 
 @router.patch("/{id}/review", response_model=TransactionResponse)
 async def review_transaction(id: str, review: ReviewRequest, db: AsyncSession = Depends(get_db)):

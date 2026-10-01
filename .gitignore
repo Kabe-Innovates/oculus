@@ -75,3 +75,6 @@ Thumbs.db
 
 # Scratch files
 setup.py
+OCULUS_IMPLEMENTATION_DOCUMENT.md
+oculus_backend_dump.txt
+oculus_complete_codebase.*

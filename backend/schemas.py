@@ -29,6 +29,7 @@ class TransactionResponse(BaseModel):
     timestamp: datetime
     risk_score: Optional[float] = None
     verdict: Optional[str] = None
+    latency_ms: Optional[float] = None
     status: str
     reviewer_notes: Optional[str] = None
     reviewed_at: Optional[datetime] = None

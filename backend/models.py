@@ -17,6 +17,7 @@ class Transaction(Base):
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     risk_score = Column(Float, nullable=True)
     verdict = Column(String(10), nullable=True)
+    latency_ms = Column(Float, nullable=True)
     status = Column(String(20), default='PENDING')
     reviewer_notes = Column(Text, nullable=True)
     reviewed_at = Column(DateTime, nullable=True)

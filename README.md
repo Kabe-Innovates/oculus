@@ -207,6 +207,19 @@ npm run dev
 
 ---
 
+## AWS Production Architecture (Terraform)
+
+The `terraform/` directory contains modular Terraform for a production-grade
+AWS deployment of Oculus in `ap-south-1` (2 AZs): CloudFront + S3 for the
+React SPA, ALB + WAF in front of an autoscaled ECS Fargate FastAPI service,
+RDS PostgreSQL + ElastiCache Redis in private subnets, an outbox -> SQS ->
+Lambda -> SNS/SES async alerting pipeline, Cognito auth (`analyst`/`admin`
+roles), Secrets Manager, and CloudWatch dashboards/alarms. See
+[`docs/architecture.md`](docs/architecture.md) for the diagram and
+[`terraform/README.md`](terraform/README.md) for usage.
+
+---
+
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

@@ -1,0 +1,21 @@
+aws_region  = "ap-south-1"
+environment = "production"
+name_prefix = "oculus"
+
+azs                  = ["ap-south-1a", "ap-south-1b"]
+vpc_cidr             = "10.20.0.0/16"
+public_subnet_cidrs  = ["10.20.0.0/24", "10.20.1.0/24"]
+private_subnet_cidrs = ["10.20.10.0/24", "10.20.11.0/24"]
+
+container_image   = "123456789012.dkr.ecr.ap-south-1.amazonaws.com/oculus-backend:latest"
+spa_bucket_suffix = "123456789012" # e.g. your AWS account ID, for global bucket uniqueness
+
+# certificate_arn = "arn:aws:acm:ap-south-1:123456789012:certificate/xxxx" # enables HTTPS on ALB
+
+alert_emails      = ["fraud-ops@example.com"]
+alert_sms_numbers = []
+ses_sender_email  = "alerts@example.com"
+
+cognito_domain_prefix = "oculus-auth"
+cognito_callback_urls = ["https://console.example.com/callback"]
+cognito_logout_urls   = ["https://console.example.com/logout"]

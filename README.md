@@ -34,8 +34,12 @@ Oculus is a real-time fraud risk engine and analyst review console built for pay
 
 ## Live Endpoints
 
-- **Analyst Console**: [http://3.109.200.180/](http://3.109.200.180/)
-- **API Documentation**: [http://3.109.200.180/docs](http://3.109.200.180/docs)
+> [!IMPORTANT]
+> **Use plain HTTP (not HTTPS)**: The hosted EC2 demo serves traffic over standard HTTP port 80. If your browser enforces "HTTPS-First" or "Always use secure connections", ensure the URL explicitly starts with `http://`.
+
+- **Analyst Console (IP)**: [http://3.109.200.180/](http://3.109.200.180/)
+- **Analyst Console (AWS DNS)**: [http://ec2-3-109-200-180.ap-south-1.compute.amazonaws.com/](http://ec2-3-109-200-180.ap-south-1.compute.amazonaws.com/)
+- **Interactive API Documentation**: [http://3.109.200.180/docs](http://3.109.200.180/docs)
 - **WebSocket Stream**: `ws://3.109.200.180/ws/transactions`
 - **AWS Region**: `ap-south-1` (Mumbai)
 
@@ -201,7 +205,7 @@ npm run dev
 | `GET` | `/api/transactions/{id}` | Retrieve transaction detail and per-rule breakdown. |
 | `PATCH` | `/api/transactions/{id}/review` | Adjudicate transaction (`CLEARED`, `CONFIRMED_FRAUD`). |
 | `GET` | `/api/stats` | Retrieve aggregate risk distribution and counters. |
-| `POST` | `/api/simulate/start` | Start synthetic transaction generator. |
+| `POST` | `/api/simulate/start` | *Disabled in production* (403 Forbidden to protect cloud resources). |
 | `POST` | `/api/simulate/stop` | Stop synthetic transaction generator. |
 | `WS` | `/ws/transactions` | Real-time WebSocket transaction stream. |
 

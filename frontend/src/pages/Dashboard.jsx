@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Shield, Play, Square } from 'lucide-react';
-import { getTransactions, getStats, getSimulatorStatus, startSimulator, stopSimulator } from '../api/client';
+import { Shield } from 'lucide-react';
+import { getTransactions, getStats } from '../api/client';
 import { useTransactionStream } from '../hooks/useTransactionStream';
 import LiveIndicator from '../components/LiveIndicator';
 import StatsCards from '../components/StatsCards';
@@ -11,19 +11,16 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [stats, setStats] = useState(null);
   const [filter, setFilter] = useState({ verdict: 'ALL', status: 'ALL' });
-  const [simRunning, setSimRunning] = useState(false);
   const { latestTransaction, isConnected } = useTransactionStream();
 
   const loadData = async () => {
     try {
-      const [txs, s, sim] = await Promise.all([
+      const [txs, s] = await Promise.all([
         getTransactions(),
-        getStats(),
-        getSimulatorStatus()
+        getStats()
       ]);
       setTransactions(txs);
       setStats(s);
-      setSimRunning(sim.running);
     } catch (e) {
       console.error(e);
     }
@@ -44,16 +41,6 @@ export default function Dashboard() {
     }
   }, [latestTransaction]);
 
-  const toggleSimulator = async () => {
-    try {
-      if (simRunning) await stopSimulator();
-      else await startSimulator();
-      setSimRunning(!simRunning);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const filteredTransactions = transactions.filter((tx) => {
     if (filter.verdict !== 'ALL' && tx.verdict !== filter.verdict) return false;
     if (filter.status !== 'ALL' && tx.status !== filter.status) return false;
@@ -70,17 +57,6 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-6">
           <LiveIndicator isConnected={isConnected} />
-          <button
-            onClick={toggleSimulator}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-              simRunning
-                ? 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
-                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-            }`}
-          >
-            {simRunning ? <Square size={16} /> : <Play size={16} />}
-            {simRunning ? 'Stop Simulator' : 'Start Simulator'}
-          </button>
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-6 py-8">

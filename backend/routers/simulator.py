@@ -1,23 +1,15 @@
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, HTTPException
 from services.simulator import simulator_instance
-import httpx
-import asyncio
 
 router = APIRouter(prefix="/api/simulate", tags=["simulator"])
 
-async def run_simulator():
-    async for tx_data in simulator_instance.stream():
-        async with httpx.AsyncClient() as client:
-            try:
-                await client.post("http://127.0.0.1:8000/api/transactions", json=tx_data)
-            except Exception:
-                pass
-
 @router.post("/start")
-async def start_simulator(background_tasks: BackgroundTasks):
-    if not simulator_instance.running:
-        background_tasks.add_task(run_simulator)
-    return {"message": "Simulator started"}
+async def start_simulator():
+    simulator_instance.running = False
+    raise HTTPException(
+        status_code=403,
+        detail="Simulator is disabled on hosted environments to prevent unintended resource consumption."
+    )
 
 @router.post("/stop")
 async def stop_simulator():
@@ -26,4 +18,4 @@ async def stop_simulator():
 
 @router.get("/status")
 async def simulator_status():
-    return {"running": simulator_instance.running}
+    return {"running": False}
